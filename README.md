@@ -1,56 +1,196 @@
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+# Safe Shield
+Safe Shield is a robust Python library designed to validating HTTP requests and input data.
 
-## v1.0.1 (2024-07-20)
-- Fixed: Bug when import `validator`.
+This project is licensed under the AGPLv3 License - see the [LICENSE](LICENSE) file for details
 
-## v1.0.2 (2024-07-20)
-- Fixed: Libary deprecated.
+## Table of Contents
+- [Installation](#installation)
+- [Overview](#usage)
+  - [Usage](#usage)
+  - [Validation Data](#validation-data)
+  - [Error Messages](#error-messages)
+  - [Attributes Custom](#attributes-custom)
+  - [Rules](#rules)
+  - [Custom Rule](#custom-rule)
+- [Example](#example)
+- [LICENSE](LICENSE)
 
-## v1.0.3 (2024-07-20)
-- Fixed: Libary deprecated.
+## Installation
+Use the package manager [pip](https://pypi.org/project/safeshield/) to isntall Safe Shield.
+```bash
+pip install safeshield
+```
 
-## v1.0.4 (2024-07-20)
-- Fixed: Libary deprecated.
+## Usage
+User should pass request dictionary and rules dictionary for validation data in the request.
 
-## v1.0.5 (2024-07-20)
-- Fixed: Libary deprecated.
+Please see examples below:
 
-## v1.0.6 (2024-07-20)
-- Fixed: Libary deprecated.
+```bash
+from validator import Validator
 
-## v1.0.7 (2024-07-20)
-- Fixed: Libary deprecated.
+request = {
+  "name": "Wunsun",
+  "email": "wunsun58@gmail.com",
+  "age": 20,
+}
 
-## v1.0.8 (2024-07-20)
-- Fixed: Libary deprecated.
+rules = {
+  "name": "required",
+  "email": "required|email",
+  "age": "required|integer|min:18",
+}
 
-## v1.0.9 (2024-07-20)
-- Fixed: Libary deprecated.
+validated_data = Validator(request, rules).validate() # Validated data returned
+```
 
-## v1.1.0 (2024-07-20)
-- Fixed: Bug connect database to Odoo.
+Validator().validate() returns either validated data or False
 
-## v1.2.0 (2024-07-20)
-- Fixed: Bug connect database to Odoo.
+## Validation Data
+### Rule Format
+You can define multiple rules for each field as a string, tuple, or list.
+- String Format
+   
+```bash
+rules = {
+  "name": "required",
+  "email": "required|email",
+  "age": "required|integer|min:18",
+}
+```
 
-## v1.2.1 (2024-07-20)
-- Fixed: Bug unique and exist rule.
+- List Format
 
-## v1.2.2 (2024-07-20)
-- Fixed: Error when connect use postgres.
+```bash
+rules = {
+  "name": ["required"],
+  "email": ["required"， "email"],
+  "age": ["required"，"integer", "min:18"],
+}
+```
 
-## v1.3.2 (2024-07-20)
-- Refinement: Groups Inheritance Rule Class.
+- Tuple Format
 
-## v1.4.2 (2024-07-20)
-- Feature: Rule can accept function as argument, Rule Chaning
+```bash
+rules = {
+  "name": ("required"),
+  "email": ("required"， "email"),
+  "age": ("required"，"integer", "min:18"),
+}
+```  
 
-## v1.4.3 (2024-07-20)
-- Fixed: Error when validation failed
+All rules can be invoked either as a class instantiation or via method calls from the Rule class (e.g., Required()) or methods (e.g., Rule.required()).
 
-## v1.4.3 (2024-07-20)
-- Fixed: Sometimes rule failed
+```bash
+from validator.rules import Rule, Required, Email
 
-## v1.4.4 (2024-07-20)
-- Fixed: Sometimes rule failed
+rules = {
+  "name": Required(),  # Single rule (no brackets needed)
+  "email": [Required(), Email()],  # Initialization Rule Class
+  "age": [Rule.required()，Rule.integer(), Rule.min(18)],  # Call rule from Rule Class
+}
+```
+
+### Nested Rules:
+Nested data validation, use dot notation like 'user.name' to access deep fields or wildcards like 'orders.*.id' to validate all array items. The system automatically checks all nested levels and returns clear error messages pointing to exact validation failures."
+
+```bash
+rules = {
+    "user.name": Required(),  # Top-level field
+    "user.contact.email": [Required(), Email()],  # Nested field
+    "orders.*.id": Required(),  # Wildcard for list items
+}
+```
+
+## Error Messages
+This validator enables users to track validation failures and receive corresponding error messages.
+
+### Basic Error Validation
+This demonstrates fundamental validation failures for required fields and data types:
+```bash
+from validator import Validator
+
+request = {
+  "name": "",  # Empty value
+  "email": "wunsun58@gmail.com",
+]
+
+rules = {
+  "name": "required|string"
+}
+
+validator = Validator(request, rules)
+validator.validate()
+
+"""
+validator.has_errors -> True
+validator.errors     -> {"name": ["The name field is required.", "The name must be a string"]}
+"""
+```
+
+- Output Explanation:
+  - validator.has_errors → True (Indicates validation failed)
+  - validator.errors → Returns detailed error messages:
+    - For the name field:
+      - "The name field is required." - Because the value is empty
+      - "The name must be a string." - Empty string fails type validation
+
+### Nested Error Validation
+Validates complex nested structures (objects/arrays) with precise error location:
+```bash
+from validator import Validator
+
+data = {
+    "user": {
+        "name": "Alice",
+        "contact": {"email": "alice@example.com"} # Invalid dns email format
+    },
+    "orders": [
+        {"id": 1, "price": "One hundred"}, # Invalid price type
+        {"id": 2, "price": 200}  # Valid entry
+    ]
+}
+
+rules = {
+  "user.name": "required",
+  "user.contact.email": "email:dns",  # Requires valid DNS email records
+  "orders.*.price": "required|integer", # Wildcard validates all array item
+}
+
+validator = Validator(request, rules)
+validator.validate()
+
+"""
+validator.has_errors -> True
+validator.errors     -> {
+                          "user.contact.email": ["The email must be a valid email with valid DNS records."],
+                          "orders.0.price": ["The price must be a number"]
+                        }
+"""
+```
+
+- Output Explanation:
+  - validator.has_errors → True
+  - validator.errors → Pinpoints exact failures:
+    - user.contact.email: Fails DNS validation
+    - orders.0.price: First array item fails integer validation
+    - Note how array indices (0, 1, etc.) are automatically identified
+
+### Custom Error Message
+Override default messages with user-friendly alternatives:
+```bash
+messages = {
+  "user.contact.email": "This email is invalid"
+}
+
+validator = Validator(request, rules, messages)
+validator.validate()
+
+"""
+validator.has_errors -> True
+validator.errors     -> {
+                          "user.contact.email": ["This email is invalid"],
+                          "orders.0.price": ["The price must be a number"]
+                        }
+"""
+```
