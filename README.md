@@ -124,7 +124,10 @@ validator.validate()
 
 """
 validator.has_errors -> True
-validator.errors     -> {"name": ["The name field is required.", "The name must be a string"]}
+validator.errors:
+  {
+    "name": ["The name field is required.", "The name must be a string"]
+  }
 """
 ```
 
@@ -162,10 +165,11 @@ validator.validate()
 
 """
 validator.has_errors -> True
-validator.errors     -> {
-                          "user.contact.email": ["The email must be a valid email with valid DNS records."],
-                          "orders.0.price": ["The price must be a number"]
-                        }
+validator.errors:
+  {
+    "user.contact.email": ["The email must be a valid email with valid DNS records."],
+    "orders.0.price": ["The price must be a number"]
+  }
 """
 ```
 
@@ -188,9 +192,10 @@ validator.validate()
 
 """
 validator.has_errors -> True
-validator.errors     -> {
-                          "user.contact.email": ["This email is invalid"],
-                          "orders.0.price": ["The price must be a number"]
-                        }
+validator.errors:
+  {
+    "user.contact.email": ["This email is invalid"],
+    "orders.0.price": ["The price must be a number"]
+  }
 """
 ```
